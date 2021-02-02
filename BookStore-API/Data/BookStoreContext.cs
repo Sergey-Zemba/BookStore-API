@@ -1,10 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
 #nullable disable
 
 namespace BookStore_API.Data
 {
-    public partial class BookStoreContext : DbContext
+    public partial class BookStoreContext : IdentityDbContext<IdentityUser>
     {
         public BookStoreContext()
         {
@@ -20,6 +22,8 @@ namespace BookStore_API.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            base.OnModelCreating(modelBuilder);
+
             modelBuilder.HasAnnotation("Relational:Collation", "Cyrillic_General_CI_AS");
 
             modelBuilder.Entity<Author>(entity =>
