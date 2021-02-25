@@ -34,11 +34,60 @@ namespace BookStore_API.Controllers
         }
 
         /// <summary>
+        /// User register endpoint
+        /// </summary>
+        /// <param name="userDTO"></param>
+        /// <returns></returns>
+        [AllowAnonymous]
+        [Route("register")]
+        [HttpPost]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> Register([FromBody] UserDTO userDTO)
+        {
+            var location = GetControllerActionNames();
+
+            try
+            {
+                _logger.LogInfo($"{location}: Registration attempt for {userDTO.EmailAddress}");
+
+
+                var user = new IdentityUser
+                {
+                    Email = userDTO.EmailAddress,
+                    UserName = userDTO.EmailAddress
+                };
+
+                var result = await _userManager.CreateAsync(user, userDTO.Password);
+
+                if (!result.Succeeded)
+                {
+                    _logger.LogError($"{location}: Registration attempt for {userDTO.EmailAddress} failed");
+
+                    foreach (var error in result.Errors)
+                    {
+                        _logger.LogError($"{location}: {error.Code} - {error.Description}");
+                    }
+
+                    return InternalError($"{location}: Registration attempt for {userDTO.EmailAddress}");
+                }
+
+                _logger.LogInfo($"{location}: {userDTO.EmailAddress} successfully registered");
+                return Ok(new {result.Succeeded});
+            }
+            catch (Exception e)
+            {
+                return InternalError($"{location}: {e.Message} - {e.InnerException}");
+            }
+        }
+
+        /// <summary>
         /// User login endpoint
         /// </summary>
         /// <param name="userDTO"></param>
         /// <returns></returns>
         [AllowAnonymous]
+        [Route("login")]
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -49,18 +98,19 @@ namespace BookStore_API.Controllers
 
             try
             {
-                _logger.LogInfo($"{location}: Login attempt from user {userDTO.Username}");
-                var result = await _signInManager.PasswordSignInAsync(userDTO.Username, userDTO.Password, false, false);
+                _logger.LogInfo($"{location}: Login attempt from user {userDTO.EmailAddress}");
+                var result =
+                    await _signInManager.PasswordSignInAsync(userDTO.EmailAddress, userDTO.Password, false, false);
 
                 if (result.Succeeded)
                 {
-                    _logger.LogInfo($"{location}: {userDTO.Username} successfully authenticated");
-                    var user = await _userManager.FindByNameAsync(userDTO.Username);
+                    _logger.LogInfo($"{location}: {userDTO.EmailAddress} successfully authenticated");
+                    var user = await _userManager.FindByNameAsync(userDTO.EmailAddress);
                     var token = await GenerateJWT(user);
                     return Ok(new {token});
                 }
 
-                _logger.LogInfo($"{location}: {userDTO.Username} not authenticated");
+                _logger.LogInfo($"{location}: {userDTO.EmailAddress} not authenticated");
                 return Unauthorized(userDTO);
             }
             catch (Exception e)
